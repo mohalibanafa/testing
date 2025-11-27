@@ -50,10 +50,9 @@ class Models {
   static const umxhq = Model(
     name: 'umxhq',
     description:
-        'Model trained on the MUSDB18-HQ dataset.\nFaster separation (~ length of the song).\n(140 MB)',
-    url:
-        'https://github.com/demixr/openunmix-torchscript/releases/latest/download/umxhq.ptl',
+        'Model trained on the MUSDB18-HQ dataset.\nFaster separation (~ length of the song).\n(Bundled with the app)',
     isDefault: true,
+    isAsset: true,
   );
   static const umxl = Model(
     name: 'umxl',
@@ -61,6 +60,7 @@ class Models {
         'Model trained on extra data. Longer separation, but improved performance.\n(290 MB)',
     url:
         'https://github.com/demixr/openunmix-torchscript/releases/latest/download/umxl.ptl',
+    isAsset: false,
   );
 
   static Model fromName(String name) {

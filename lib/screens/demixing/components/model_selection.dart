@@ -98,35 +98,49 @@ class ModelSelection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = context.read<PreferencesProvider>();
+
     Widget title = const Text(
       'Model selection',
       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
     );
 
-    List<Widget> children = [
-      for (var model in Models.all)
-        buildModelTile(
-          context,
-          model,
-          getAssetPath('open_unmix', AssetType.image),
-        )
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 20),
-      child: SpacedColumn(
-        spacing: 10,
-        mainAxisAlignment: MainAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: title,
-          ),
-          ...children
-        ],
-      ),
+    return FutureBuilder<List<Model>>(
+      future: Future.wait(Models.all
+          .where((model) async => await preferences.isModelAvailable(model))
+          .map((model) async => model)
+          .toList()),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final models = snapshot.data!;
+          return Padding(
+            padding: const EdgeInsets.only(top: 20, bottom: 20),
+            child: SpacedColumn(
+              spacing: 10,
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: title,
+                ),
+                for (var model in models)
+                  buildModelTile(
+                    context,
+                    model,
+                    getAssetPath('open_unmix', AssetType.image),
+                  )
+              ],
+            ),
+          );
+        } else {
+          return const Center(
+            child:
+                CircularProgressIndicator(color: ColorPalette.primary),
+          );
+        }
+      },
     );
   }
 }

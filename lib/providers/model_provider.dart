@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flowder/flowder.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
@@ -32,45 +33,58 @@ class ModelProvider extends ChangeNotifier {
   /// Displays the progress on the [DownloadScreen].
   /// Runs the [onDone] callback when the download is over.
   void downloadModel(Model model, {required VoidCallback onDone}) async {
-    Get.toNamed('/model/download');
-
     final filename = '${model.name}${Models.fileExtension}';
     final directory = await _preferences.repository.modelsPath;
 
     final path = p.join(directory, filename);
 
-    final options = DownloaderUtils(
-      progressCallback: (current, total) {
-        progress = (current / total);
-        currentDownloaded = current ~/ 1e6;
-        notifyListeners();
-      },
-      file: File(path),
-      progress: ProgressImplementation(),
-      deleteOnCancel: true,
-      onDone: () {
-        _preferences.repository.setModelPath(path, model.name);
-        _preferences.setModel(model);
-        _clearDownload();
+    if (model.isAsset) {
+      final byteData = await rootBundle.load('assets/models/$filename');
+      final file = File(path);
+      await file.writeAsBytes(byteData.buffer
+          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+      _preferences.repository.setModelPath(path, model.name);
+      _preferences.setModel(model);
+      onDone();
+    } else {
+      Get.toNamed('/model/download');
 
-        onDone();
-      },
-    );
+      final options = DownloaderUtils(
+        progressCallback: (current, total) {
+          progress = (current / total);
+          currentDownloaded = current ~/ 1e6;
+          notifyListeners();
+        },
+        file: File(path),
+        progress: ProgressImplementation(),
+        deleteOnCancel: true,
+        onDone: () {
+          _preferences.repository.setModelPath(path, model.name);
+          _preferences.setModel(model);
+          _clearDownload();
 
-    try {
-      downloader = await Flowder.download(model.url, options);
-    } catch (e) {
-      Get.snackbar(
-        'Download error',
-        'You must be connected in order to download the model. '
-            'Please check your connection and try again.',
-        backgroundColor: ColorPalette.errorContainer,
-        colorText: ColorPalette.onError,
-        duration: const Duration(seconds: 5),
+          onDone();
+        },
       );
-      await Future.delayed(const Duration(seconds: 2));
-      _clearDownload();
-      notifyListeners();
+
+      try {
+        if (model.url == null) {
+          throw ArgumentError('Model URL cannot be null for non-asset models');
+        }
+        downloader = await Flowder.download(model.url!, options);
+      } catch (e) {
+        Get.snackbar(
+          'Download error',
+          'You must be connected in to download the model. '
+              'Please check your connection and try again.',
+          backgroundColor: ColorPalette.errorContainer,
+          colorText: ColorPalette.onError,
+          duration: const Duration(seconds: 5),
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        _clearDownload();
+        notifyListeners();
+      }
     }
   }
 

@@ -68,6 +68,8 @@ class PreferencesProvider extends ChangeNotifier {
   /// First checks if the model is registered in the [_repository]
   /// and then checks if the file is available in the file system.
   Future<bool> isModelAvailable(Model model) async {
+    if (model.isAsset) return true;
+
     final modelPath = _repository.getModelPath(model.name);
     if (modelPath == null) return false;
 
